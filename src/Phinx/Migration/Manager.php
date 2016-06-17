@@ -28,6 +28,7 @@
  */
 namespace Phinx\Migration;
 
+use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Phinx\Config\ConfigInterface;
 use Phinx\Migration\Manager\Environment;
@@ -41,6 +42,11 @@ class Manager
      * @var ConfigInterface
      */
     protected $config;
+
+    /**
+     * @var InputInterface
+     */
+    protected $input;
 
     /**
      * @var OutputInterface
@@ -76,11 +82,13 @@ class Manager
      * Class Constructor.
      *
      * @param ConfigInterface $config Configuration Object
+     * @param InputInterface $input Console Input
      * @param OutputInterface $output Console Output
      */
-    public function __construct(ConfigInterface $config, OutputInterface $output)
+    public function __construct(ConfigInterface $config, InputInterface $input, OutputInterface $output)
     {
         $this->setConfig($config);
+        $this->setInput($input);
         $this->setOutput($output);
     }
 
@@ -488,6 +496,28 @@ class Manager
     }
 
     /**
+     * Sets the console input.
+     *
+     * @param InputInterface $input Input
+     * @return Manager
+     */
+    public function setInput(InputInterface $input)
+    {
+        $this->input = $input;
+        return $this;
+    }
+
+    /**
+     * Gets the console input.
+     *
+     * @return InputInterface
+     */
+    public function getInput()
+    {
+        return $this->input;
+    }
+
+    /**
      * Sets the console output.
      *
      * @param OutputInterface $output Output
@@ -571,7 +601,7 @@ class Manager
                     }
 
                     // instantiate it
-                    $migration = new $class($version);
+                    $migration = new $class($version, $this->getInput(), $this->getOutput());
 
                     if (!($migration instanceof AbstractMigration)) {
                         throw new \InvalidArgumentException(sprintf(
@@ -581,7 +611,6 @@ class Manager
                         ));
                     }
 
-                    $migration->setOutput($this->getOutput());
                     $versions[$version] = $migration;
                 }
             }
@@ -640,7 +669,7 @@ class Manager
                     }
 
                     // instantiate it
-                    $seed = new $class();
+                    $seed = new $class($this->getInput(), $this->getOutput());
 
                     if (!($seed instanceof AbstractSeed)) {
                         throw new \InvalidArgumentException(sprintf(
@@ -650,7 +679,6 @@ class Manager
                         ));
                     }
 
-                    $seed->setOutput($this->getOutput());
                     $seeds[$class] = $seed;
                 }
             }
