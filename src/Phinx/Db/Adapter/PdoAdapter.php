@@ -34,6 +34,7 @@ use Symfony\Component\Console\Output\NullOutput;
 use Phinx\Db\Table;
 use Phinx\Db\Table\Column;
 use Phinx\Migration\MigrationInterface;
+use GuzzleHttp;
 
 /**
  * Phinx PDO Adapter.
@@ -72,6 +73,9 @@ abstract class PdoAdapter implements AdapterInterface
      */
     protected $commandStartTime;
 
+
+    protected $dbChangesAlerter;
+
     /**
      * Class Constructor.
      *
@@ -87,6 +91,12 @@ abstract class PdoAdapter implements AdapterInterface
         }
         if (null !== $output) {
             $this->setOutput($output);
+        }
+
+        if (isset($options['notification']) && strlen($options['notification'])) {
+            $this->dbChangesAlerter = new GuzzleHttp\Client(['base_uri' => $options['notification']]);
+        } else {
+            $this->$dbChangesAlerter = null;
         }
     }
 
@@ -335,7 +345,27 @@ abstract class PdoAdapter implements AdapterInterface
      */
     public function execute($sql)
     {
-        return $this->getConnection()->exec($sql);
+        $affectedRows = $this->getConnection()->exec($sql);
+        if ($this->dbChangesAlerter !== null) {
+            if (strlen($sql) > 17) { // execute: "START TRANSACTION" & "COMMIT"
+                $this->dbChangesAlerter->requestAsync('POST', '', [
+                    "json" => [
+                        'text' => '*New migration has just been executed*',
+                        "attachments" => [
+                            [
+                                'title' => 'Content',
+                                'color' => 'warning',
+                                'text' => '```' . htmlspecialchars($sql, ENT_QUOTES) . '```',
+                                'mrkdwn' => true,
+                                'mrkdwn_in' => ["text","title"]
+                            ]
+                        ],
+                        "mrkdwn" => true
+                    ]
+                ])->wait();
+            }
+        }
+        return $affectedRows;
     }
 
     /**
