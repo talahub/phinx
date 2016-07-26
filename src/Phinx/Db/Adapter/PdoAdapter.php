@@ -96,7 +96,7 @@ abstract class PdoAdapter implements AdapterInterface
         if (isset($options['notification']) && strlen($options['notification'])) {
             $this->dbChangesAlerter = new GuzzleHttp\Client(['base_uri' => $options['notification']]);
         } else {
-            $this->$dbChangesAlerter = null;
+            $this->dbChangesAlerter = null;
         }
     }
 
