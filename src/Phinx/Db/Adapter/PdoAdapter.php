@@ -348,9 +348,16 @@ abstract class PdoAdapter implements AdapterInterface
         $affectedRows = $this->getConnection()->exec($sql);
         if ($this->dbChangesAlerter !== null) {
             if (strlen($sql) > 17) { // execute: "START TRANSACTION" & "COMMIT"
+                $serverName = '';
+                if(isset($this->options['host'])) {
+                    $serverName .= ' at "' . $this->options['host'] . '"';
+                }
+                if(isset($this->options['name'])) {
+                    $serverName .= ' on db "' . $this->options['name'] . '"';
+                }
                 $this->dbChangesAlerter->requestAsync('POST', '', [
                     "json" => [
-                        'text' => '*New migration has just been executed*',
+                        'text' => '*New migration has just been executed ' . $serverName .' *',
                         "attachments" => [
                             [
                                 'title' => 'Content',
